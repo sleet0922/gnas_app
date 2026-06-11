@@ -11,6 +11,8 @@ import '../models/config_model.dart';
 class ApiService {
   static const String _tokenKey = 'auth_token';
   static const String _hostKey = 'host_address';
+  static const String _usernameKey = 'saved_username';
+  static const String _passwordKey = 'saved_password';
   static String _baseUrl = 'http://192.168.1.100:8080';
   String? _token;
 
@@ -37,6 +39,24 @@ class ApiService {
     _baseUrl = host;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_hostKey, host);
+  }
+
+  Future<Map<String, String>> loadCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'username': prefs.getString(_usernameKey) ?? '',
+      'password': prefs.getString(_passwordKey) ?? '',
+      'host': prefs.getString(_hostKey) ?? 'http://192.168.1.100:8080',
+    };
+  }
+
+  Future<void> saveCredentials(
+      String username, String password, String host) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_usernameKey, username);
+    await prefs.setString(_passwordKey, password);
+    await prefs.setString(_hostKey, host);
+    _baseUrl = host;
   }
 
   Future<void> clearToken() async {

@@ -10,25 +10,30 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _usernameController = TextEditingController(text: 'root');
-  final _passwordController = TextEditingController(text: 'root');
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _hostController = TextEditingController();
   final _api = ApiService();
   bool _loading = false;
   bool _obscurePassword = true;
   String? _error;
   bool _showHostConfig = false;
+  bool _savingCredentials = true;
 
   @override
   void initState() {
     super.initState();
-    _hostController.text = _api.baseUrl;
-    _checkAutoLogin();
+    _loadCredentials();
   }
 
-  Future<void> _checkAutoLogin() async {
+  Future<void> _loadCredentials() async {
+    final creds = await _api.loadCredentials();
+    _usernameController.text = creds['username'] ?? '';
+    _passwordController.text = creds['password'] ?? '';
+    _hostController.text = creds['host'] ?? _api.baseUrl;
+
     await _api.loadSaved();
-    if (_api.token != null) {
+    if (_api.token != null && mounted) {
       final res = await _api.checkLogin();
       if (res.isSuccess && mounted) {
         _navigateToHome();
@@ -42,17 +47,21 @@ class _LoginPageState extends State<LoginPage> {
       _error = null;
     });
 
-    await _api.saveHost(_hostController.text.trim());
+    final host = _hostController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
 
-    final res = await _api.login(
-      _usernameController.text.trim(),
-      _passwordController.text,
-    );
+    await _api.saveHost(host);
+
+    final res = await _api.login(username, password);
 
     if (!mounted) return;
 
     if (res.isSuccess && res.data != null) {
       await _api.saveToken(res.data!);
+      if (_savingCredentials) {
+        await _api.saveCredentials(username, password, host);
+      }
       _navigateToHome();
     } else {
       setState(() {
@@ -150,8 +159,31 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                // Save credentials toggle
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _savingCredentials,
+                        onChanged: (v) =>
+                            setState(() => _savingCredentials = v ?? true),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '记住账号密码',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
                 if (_error != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
