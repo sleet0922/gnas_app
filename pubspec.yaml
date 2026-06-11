@@ -40,6 +40,7 @@ dependencies:
   mime: ^2.0.0
   wechat_assets_picker: ^9.2.0
   photo_manager: ^3.6.0
+  video_player: ^2.11.1
 
 dev_dependencies:
   flutter_test:

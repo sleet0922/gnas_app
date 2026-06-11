@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import '../services/api_service.dart';
 import '../models/media_item.dart';
@@ -155,19 +156,17 @@ class _GalleryPageState extends State<GalleryPage>
                 itemBuilder: (_, i) {
                   final item = _items[i];
                   return GestureDetector(
-                    onTap: () => _preview(item),
+                    onTap: () => _preview(context, item),
                     onLongPress: () => _deleteItem(item),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        if (item.isImage)
-                          Image.network(
-                            _api.getThumbUrl(item.path),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _placeholder(item),
-                          )
-                        else
-                          _placeholder(item),
+                        // Try thumbnail for both images and videos
+                        Image.network(
+                          _api.getThumbUrl(item.path),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _placeholder(item),
+                        ),
                         if (item.isVideo)
                           const Center(
                             child: SizedBox(
@@ -263,39 +262,52 @@ class _GalleryPageState extends State<GalleryPage>
     }
   }
 
-  void _preview(MediaItem item) {
-    final images = _items.where((m) => m.isImage).toList();
-    final initialIndex = images.indexWhere((m) => m.path == item.path);
-    if (initialIndex < 0) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => _GalleryPreviewPage(
-          images: images,
-          initialIndex: initialIndex,
-          api: _api,
+  void _preview(BuildContext context, MediaItem item) {
+    if (item.isVideo) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => _VideoPreviewPage(
+            item: item,
+            api: _api,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      final images = _items.where((m) => m.isImage).toList();
+      final initialIndex = images.indexWhere((m) => m.path == item.path);
+      if (initialIndex < 0) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => _ImagePreviewPage(
+            images: images,
+            initialIndex: initialIndex,
+            api: _api,
+          ),
+        ),
+      );
+    }
   }
 }
 
-class _GalleryPreviewPage extends StatefulWidget {
+// --- Image preview (unchanged) ---
+
+class _ImagePreviewPage extends StatefulWidget {
   final List<MediaItem> images;
   final int initialIndex;
   final ApiService api;
 
-  const _GalleryPreviewPage({
+  const _ImagePreviewPage({
     required this.images,
     required this.initialIndex,
     required this.api,
   });
 
   @override
-  State<_GalleryPreviewPage> createState() => _GalleryPreviewPageState();
+  State<_ImagePreviewPage> createState() => _ImagePreviewPageState();
 }
 
-class _GalleryPreviewPageState extends State<_GalleryPreviewPage> {
+class _ImagePreviewPageState extends State<_ImagePreviewPage> {
   late final PageController _pageController;
   late int _currentIndex;
 
@@ -368,6 +380,188 @@ class _GalleryPreviewPageState extends State<_GalleryPreviewPage> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// --- Video preview ---
+
+class _VideoPreviewPage extends StatefulWidget {
+  final MediaItem item;
+  final ApiService api;
+
+  const _VideoPreviewPage({
+    required this.item,
+    required this.api,
+  });
+
+  @override
+  State<_VideoPreviewPage> createState() => _VideoPreviewPageState();
+}
+
+class _VideoPreviewPageState extends State<_VideoPreviewPage> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+  bool _error = false;
+  bool _showControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      final url = widget.api.getDownloadUrl(widget.item.path, disposition: 'inline');
+      _controller = VideoPlayerController.networkUrl(Uri.parse(url));
+      await _controller.initialize();
+      if (!mounted) return;
+      setState(() => _initialized = true);
+      _controller.play();
+      _controller.addListener(_onStateChanged);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = true);
+    }
+  }
+
+  void _onStateChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onStateChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '${d.inHours > 0 ? '${d.inHours}:' : ''}$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          widget.item.name,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: GestureDetector(
+        onTap: () => setState(() => _showControls = !_showControls),
+        child: Center(
+          child: _error
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.videocam_off,
+                        color: Colors.white38, size: 64),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '视频加载失败',
+                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.item.name,
+                      style: const TextStyle(color: Colors.white38),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.tonal(
+                      onPressed: () {
+                        setState(() {
+                          _error = false;
+                          _initialized = false;
+                        });
+                        _initPlayer();
+                      },
+                      child: const Text('重试'),
+                    ),
+                  ],
+                )
+              : _initialized
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: _controller.value.aspectRatio,
+                      child: VideoPlayer(_controller),
+                    ),
+                    if (_showControls) ...[
+                      const SizedBox(height: 12),
+                      // Progress bar
+                      VideoProgressIndicator(
+                        _controller,
+                        allowScrubbing: true,
+                        colors: const VideoProgressColors(
+                          playedColor: Colors.white,
+                          bufferedColor: Colors.white24,
+                          backgroundColor: Colors.white10,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Controls row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _formatDuration(
+                                _controller.value.position),
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton(
+                            icon: Icon(
+                              _controller.value.isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_filled,
+                              color: Colors.white,
+                              size: 48,
+                            ),
+                            onPressed: () {
+                              if (_controller.value.isPlaying) {
+                                _controller.pause();
+                              } else {
+                                _controller.play();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            _formatDuration(
+                                _controller.value.duration),
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                )
+              : const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white54),
+                    SizedBox(height: 16),
+                    Text(
+                      '正在加载视频...',
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
