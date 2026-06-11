@@ -31,14 +31,6 @@ class _LoginPageState extends State<LoginPage> {
     _usernameController.text = creds['username'] ?? '';
     _passwordController.text = creds['password'] ?? '';
     _hostController.text = creds['host'] ?? _api.baseUrl;
-
-    await _api.loadSaved();
-    if (_api.token != null && mounted) {
-      final res = await _api.checkLogin();
-      if (res.isSuccess && mounted) {
-        _navigateToHome();
-      }
-    }
   }
 
   Future<void> _login() async {
@@ -57,8 +49,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!mounted) return;
 
-    if (res.isSuccess && res.data != null) {
-      await _api.saveToken(res.data!);
+    if (res.isSuccess) {
       if (_savingCredentials) {
         await _api.saveCredentials(username, password, host);
       }

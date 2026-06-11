@@ -9,30 +9,20 @@ import '../models/media_item.dart';
 import '../models/config_model.dart';
 
 class ApiService {
-  static const String _tokenKey = 'auth_token';
   static const String _hostKey = 'host_address';
   static const String _usernameKey = 'saved_username';
   static const String _passwordKey = 'saved_password';
   static String _baseUrl = 'http://192.168.1.100:8080';
-  String? _token;
 
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
 
   String get baseUrl => _baseUrl;
-  String? get token => _token;
 
   Future<void> loadSaved() async {
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(_tokenKey);
     _baseUrl = prefs.getString(_hostKey) ?? 'http://192.168.1.100:8080';
-  }
-
-  Future<void> saveToken(String token) async {
-    _token = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
   }
 
   Future<void> saveHost(String host) async {
@@ -59,27 +49,11 @@ class ApiService {
     _baseUrl = host;
   }
 
-  Future<void> clearToken() async {
-    _token = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-  }
-
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
-        if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
-  // -- Auth --
-  Future<ApiResponse<Map<String, dynamic>>> checkLogin() async {
-    final r = await http.get(Uri.parse('$_baseUrl/api/login'));
-    return ApiResponse.fromJson(
-      jsonDecode(r.body) as Map<String, dynamic>,
-      (d) => d as Map<String, dynamic>,
-    );
-  }
-
-  Future<ApiResponse<String>> login(String username, String password) async {
+  Future<ApiResponse<void>> login(String username, String password) async {
     final r = await http.post(
       Uri.parse('$_baseUrl/api/login'),
       headers: {'Content-Type': 'application/json'},
@@ -87,7 +61,7 @@ class ApiService {
     );
     return ApiResponse.fromJson(
       jsonDecode(r.body) as Map<String, dynamic>,
-      (d) => (d as Map<String, dynamic>)['token'] as String,
+      (_) {},
     );
   }
 
@@ -236,7 +210,7 @@ class ApiService {
   }
 
   String getDownloadUrl(String path, {String? disposition}) {
-    final params = {'path': path, 'token': _token ?? ''};
+    final params = {'path': path};
     if (disposition != null) params['disposition'] = disposition;
     final uri = Uri.parse('$_baseUrl/api/files/download')
         .replace(queryParameters: params);
@@ -244,7 +218,7 @@ class ApiService {
   }
 
   String getThumbUrl(String path) {
-    return '$_baseUrl/api/files/thumb?path=${Uri.encodeComponent(path)}&token=$_token';
+    return '$_baseUrl/api/files/thumb?path=${Uri.encodeComponent(path)}';
   }
 
   Future<ApiResponse<void>> createDir(String path) async {

@@ -41,7 +41,6 @@ class _SettingsPageState extends State<SettingsPage>
     if (confirm != true) return;
 
     await _api.logout();
-    await _api.clearToken();
     if (!mounted) return;
     nav.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),

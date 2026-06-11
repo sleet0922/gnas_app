@@ -55,7 +55,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           backgroundColor: Colors.green.shade600,
         ),
       );
-      await _api.clearToken();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginPage()),
