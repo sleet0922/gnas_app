@@ -20,15 +20,55 @@ class ApiService {
 
   String get baseUrl => _baseUrl;
 
+  /// Normalizes a host/URL string to a valid URL.
+  /// - Adds http:// if missing
+  /// - Wraps bare IPv6 addresses in square brackets
+  static String normalizeUrl(String url) {
+    url = url.trim();
+    if (url.isEmpty) return url;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'http://$url';
+    }
+
+    final authStart = url.indexOf('://') + 3;
+    final authority = url.substring(authStart);
+
+    // Detect bare IPv6 (contains >= 2 colons, no brackets)
+    if (authority.contains(':') && !authority.contains('[')) {
+      final colonCount = ':'.allMatches(authority).length;
+      if (colonCount >= 2) {
+        final lastColon = authority.lastIndexOf(':');
+        final afterLastColon = authority.substring(lastColon + 1);
+
+        String ipv6;
+        String? portStr;
+
+        if (RegExp(r'^\d+$').hasMatch(afterLastColon)) {
+          ipv6 = authority.substring(0, lastColon);
+          portStr = afterLastColon;
+        } else {
+          ipv6 = authority;
+        }
+
+        url = portStr != null
+            ? '${url.substring(0, authStart)}[$ipv6]:$portStr'
+            : '${url.substring(0, authStart)}[$ipv6]';
+      }
+    }
+
+    return url;
+  }
+
   Future<void> loadSaved() async {
     final prefs = await SharedPreferences.getInstance();
-    _baseUrl = prefs.getString(_hostKey) ?? 'http://192.168.1.100:8080';
+    _baseUrl = normalizeUrl(prefs.getString(_hostKey) ?? 'http://192.168.1.100:8080');
   }
 
   Future<void> saveHost(String host) async {
-    _baseUrl = host;
+    _baseUrl = normalizeUrl(host);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_hostKey, host);
+    await prefs.setString(_hostKey, _baseUrl);
   }
 
   Future<Map<String, String>> loadCredentials() async {
@@ -45,8 +85,8 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_usernameKey, username);
     await prefs.setString(_passwordKey, password);
-    await prefs.setString(_hostKey, host);
-    _baseUrl = host;
+    await prefs.setString(_hostKey, normalizeUrl(host));
+    _baseUrl = normalizeUrl(host);
   }
 
   Map<String, String> get _headers => {

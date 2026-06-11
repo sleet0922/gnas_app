@@ -460,9 +460,9 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
       ),
       body: GestureDetector(
         onTap: () => setState(() => _showControls = !_showControls),
-        child: Center(
-          child: _error
-              ? Column(
+        child: _error
+            ? Center(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.videocam_off,
@@ -489,68 +489,97 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
                       child: const Text('重试'),
                     ),
                   ],
-                )
-              : _initialized
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AspectRatio(
+                ),
+              )
+            : _initialized
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  Center(
+                    child: AspectRatio(
                       aspectRatio: _controller.value.aspectRatio,
                       child: VideoPlayer(_controller),
                     ),
-                    if (_showControls) ...[
-                      const SizedBox(height: 12),
-                      // Progress bar
-                      VideoProgressIndicator(
-                        _controller,
-                        allowScrubbing: true,
-                        colors: const VideoProgressColors(
-                          playedColor: Colors.white,
-                          bufferedColor: Colors.white24,
-                          backgroundColor: Colors.white10,
+                  ),
+                  if (_showControls)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Colors.black54],
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).padding.bottom,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              VideoProgressIndicator(
+                                _controller,
+                                allowScrubbing: true,
+                                colors: const VideoProgressColors(
+                                  playedColor: Colors.white,
+                                  bufferedColor: Colors.white24,
+                                  backgroundColor: Colors.white10,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _formatDuration(
+                                          _controller.value.position),
+                                      style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        _controller.value.isPlaying
+                                            ? Icons.pause_circle_filled
+                                            : Icons.play_circle_filled,
+                                        color: Colors.white,
+                                        size: 40,
+                                      ),
+                                      onPressed: () {
+                                        if (_controller.value.isPlaying) {
+                                          _controller.pause();
+                                        } else {
+                                          _controller.play();
+                                        }
+                                      },
+                                    ),
+                                    Text(
+                                      _formatDuration(
+                                          _controller.value.duration),
+                                      style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      // Controls row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _formatDuration(
-                                _controller.value.position),
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 12),
-                          ),
-                          const SizedBox(width: 16),
-                          IconButton(
-                            icon: Icon(
-                              _controller.value.isPlaying
-                                  ? Icons.pause_circle_filled
-                                  : Icons.play_circle_filled,
-                              color: Colors.white,
-                              size: 48,
-                            ),
-                            onPressed: () {
-                              if (_controller.value.isPlaying) {
-                                _controller.pause();
-                              } else {
-                                _controller.play();
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            _formatDuration(
-                                _controller.value.duration),
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                )
-              : const Column(
+                    ),
+                ],
+              )
+            : const Center(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CircularProgressIndicator(color: Colors.white54),
@@ -561,8 +590,8 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
                     ),
                   ],
                 ),
+              ),
         ),
-      ),
     );
   }
 }
