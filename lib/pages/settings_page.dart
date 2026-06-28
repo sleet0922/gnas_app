@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'change_password_page.dart';
+import 'config_page.dart';
 import 'login_page.dart';
+import 'logs_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -26,8 +28,9 @@ class _SettingsPageState extends State<SettingsPage>
         content: const Text('确定要退出当前账号吗？'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
@@ -60,11 +63,13 @@ class _SettingsPageState extends State<SettingsPage>
         // Account section
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('账号',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              )),
+          child: Text(
+            '账号',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         Card(
           margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -77,16 +82,64 @@ class _SettingsPageState extends State<SettingsPage>
                     color: theme.colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.password,
-                      size: 18, color: theme.colorScheme.onPrimaryContainer),
+                  child: Icon(
+                    Icons.password,
+                    size: 18,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
                 ),
                 title: const Text('修改密码'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                        builder: (_) => const ChangePasswordPage()),
+                      builder: (_) => const ChangePasswordPage(),
+                    ),
                   );
+                },
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.tune,
+                    size: 18,
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
+                ),
+                title: const Text('系统配置'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const ConfigPage()));
+                },
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.article,
+                    size: 18,
+                    color: theme.colorScheme.onTertiaryContainer,
+                  ),
+                ),
+                title: const Text('运行日志'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const LogsPage()));
                 },
               ),
               const Divider(height: 1, indent: 56),
@@ -97,8 +150,11 @@ class _SettingsPageState extends State<SettingsPage>
                     color: theme.colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.logout,
-                      size: 18, color: theme.colorScheme.error),
+                  child: Icon(
+                    Icons.logout,
+                    size: 18,
+                    color: theme.colorScheme.error,
+                  ),
                 ),
                 title: const Text('退出登录'),
                 trailing: const Icon(Icons.chevron_right),
@@ -111,11 +167,13 @@ class _SettingsPageState extends State<SettingsPage>
         // About section
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('关于',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              )),
+          child: Text(
+            '关于',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         Card(
           margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -126,8 +184,11 @@ class _SettingsPageState extends State<SettingsPage>
                 color: theme.colorScheme.secondaryContainer,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.dns,
-                  size: 18, color: theme.colorScheme.onSecondaryContainer),
+              child: Icon(
+                Icons.dns,
+                size: 18,
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
             ),
             title: const Text('GNAS'),
             subtitle: const Text('网络附加存储'),

@@ -83,9 +83,7 @@ class _FilesPageState extends State<FilesPage>
     final file = File(result.files.single.path!);
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('上传中...')),
-    );
+    messenger.showSnackBar(const SnackBar(content: Text('上传中...')));
     final res = await _api.uploadFile(_currentPath, file);
     if (!mounted) return;
     if (res.isSuccess) {
@@ -122,7 +120,9 @@ class _FilesPageState extends State<FilesPage>
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('创建'),
@@ -156,14 +156,14 @@ class _FilesPageState extends State<FilesPage>
         title: const Text('重命名'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-          ),
+          decoration: const InputDecoration(border: OutlineInputBorder()),
           autofocus: true,
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('确定'),
@@ -196,8 +196,9 @@ class _FilesPageState extends State<FilesPage>
         content: Text('确定要删除 "${file.name}" 吗？'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -277,6 +278,11 @@ class _FilesPageState extends State<FilesPage>
     }
   }
 
+  String _formatModTime(String value) {
+    if (value.length >= 10) return value.substring(0, 10);
+    return value.isEmpty ? '-' : value;
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -330,72 +336,82 @@ class _FilesPageState extends State<FilesPage>
           child: _loading
               ? const Center(child: CircularProgressIndicator())
               : _error != null
-                  ? Center(child: Text(_error!))
-                  : _files.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.folder_open,
-                                  size: 64, color: Colors.grey.shade300),
-                              const SizedBox(height: 8),
-                              Text('空目录',
-                                  style: TextStyle(color: Colors.grey.shade500)),
-                            ],
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadFiles,
-                          child: ListView.separated(
-                            itemCount: _files.length,
-                            separatorBuilder: (_, _) => const Divider(height: 1),
-                            itemBuilder: (_, i) {
-                              final f = _files[i];
-                              return ListTile(
-                                leading: Icon(
-                                  _getIcon(f),
-                                  color: f.isDir
-                                      ? Colors.amber.shade600
-                                      : theme.colorScheme.primary,
-                                ),
-                                title: Text(f.name),
-                                subtitle: f.isDir
-                                    ? null
-                                    : Text(
-                                        '${f.formattedSize}  •  ${f.modTime.substring(0, 10)}',
-                                        style: theme.textTheme.bodySmall,
-                                      ),
-                                trailing: PopupMenuButton<String>(
-                                  onSelected: (v) {
-                                    switch (v) {
-                                      case 'rename':
-                                        _rename(f);
-                                      case 'delete':
-                                        _delete(f);
-                                      case 'download':
-                                        _download(f);
-                                    }
-                                  },
-                                  itemBuilder: (_) => [
-                                    if (!f.isDir)
-                                      const PopupMenuItem(
-                                          value: 'download',
-                                          child: Text('下载')),
-                                    const PopupMenuItem(
-                                        value: 'rename', child: Text('重命名')),
-                                    const PopupMenuItem(
-                                        value: 'delete', child: Text('删除')),
-                                  ],
-                                ),
-                                onTap: f.isDir
-                                    ? () => _enterDir(f.path)
-                                    : f.isImage
-                                        ? () => _previewImage(f)
-                                        : null,
-                              );
-                            },
-                          ),
+              ? Center(child: Text(_error!))
+              : _files.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.folder_open,
+                        size: 64,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '空目录',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadFiles,
+                  child: ListView.separated(
+                    itemCount: _files.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final f = _files[i];
+                      return ListTile(
+                        leading: Icon(
+                          _getIcon(f),
+                          color: f.isDir
+                              ? Colors.amber.shade600
+                              : theme.colorScheme.primary,
                         ),
+                        title: Text(f.name),
+                        subtitle: f.isDir
+                            ? null
+                            : Text(
+                                '${f.formattedSize}  •  ${_formatModTime(f.modTime)}',
+                                style: theme.textTheme.bodySmall,
+                              ),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (v) {
+                            switch (v) {
+                              case 'rename':
+                                _rename(f);
+                              case 'delete':
+                                _delete(f);
+                              case 'download':
+                                _download(f);
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            if (!f.isDir)
+                              const PopupMenuItem(
+                                value: 'download',
+                                child: Text('下载'),
+                              ),
+                            const PopupMenuItem(
+                              value: 'rename',
+                              child: Text('重命名'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('删除'),
+                            ),
+                          ],
+                        ),
+                        onTap: f.isDir
+                            ? () => _enterDir(f.path)
+                            : f.isImage
+                            ? () => _previewImage(f)
+                            : null,
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -408,9 +424,7 @@ class _FilesPageState extends State<FilesPage>
         builder: (_) => Scaffold(
           appBar: AppBar(title: Text(file.name)),
           body: InteractiveViewer(
-            child: Center(
-              child: Image.network(url, fit: BoxFit.contain),
-            ),
+            child: Center(child: Image.network(url, fit: BoxFit.contain)),
           ),
         ),
       ),

@@ -33,10 +33,22 @@ class _ConfigPageState extends State<ConfigPage>
 
   @override
   void dispose() {
+    for (final form in _dnsForms) {
+      form.dispose();
+    }
     _webhookUrlCtl.dispose();
     _webhookBodyCtl.dispose();
     _webhookHeadersCtl.dispose();
     super.dispose();
+  }
+
+  void _setDnsForms(List<DnsConfig> configs) {
+    for (final form in _dnsForms) {
+      form.dispose();
+    }
+    _dnsForms
+      ..clear()
+      ..addAll(configs.map(_DnsFormData.fromConfig));
   }
 
   Future<void> _loadConfig() async {
@@ -52,10 +64,7 @@ class _ConfigPageState extends State<ConfigPage>
       _webhookUrlCtl.text = _config!.webhookUrl;
       _webhookBodyCtl.text = _config!.webhookRequestBody;
       _webhookHeadersCtl.text = _config!.webhookHeaders;
-      _dnsForms.clear();
-      for (final dns in _config!.dnsConf) {
-        _dnsForms.add(_DnsFormData.fromConfig(dns));
-      }
+      _setDnsForms(_config!.dnsConf);
       setState(() => _loading = false);
     } else {
       setState(() {
@@ -201,21 +210,31 @@ class _ConfigPageState extends State<ConfigPage>
                       children: [
                         Icon(Icons.dns, color: theme.colorScheme.primary),
                         const SizedBox(width: 8),
-                        Text('DDNS 配置 #${i + 1}',
-                            style: theme.textTheme.titleMedium),
+                        Text(
+                          'DDNS 配置 #${i + 1}',
+                          style: theme.textTheme.titleMedium,
+                        ),
                         const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.red),
-                          onPressed: () =>
-                              setState(() => _dnsForms.removeAt(i)),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              final removed = _dnsForms.removeAt(i);
+                              removed.dispose();
+                            });
+                          },
                         ),
                       ],
                     ),
                     const Divider(),
                     TextField(
                       decoration: const InputDecoration(
-                          labelText: '名称', border: OutlineInputBorder()),
+                        labelText: '名称',
+                        border: OutlineInputBorder(),
+                      ),
                       controller: form.nameCtl,
                     ),
                     const SizedBox(height: 8),
@@ -228,10 +247,15 @@ class _ConfigPageState extends State<ConfigPage>
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'dnspod', child: Text('DNSPod')),
+                        DropdownMenuItem(
+                          value: 'dnspod',
+                          child: Text('DNSPod'),
+                        ),
                         DropdownMenuItem(value: 'aliyun', child: Text('阿里云')),
                         DropdownMenuItem(
-                            value: 'cloudflare', child: Text('Cloudflare')),
+                          value: 'cloudflare',
+                          child: Text('Cloudflare'),
+                        ),
                       ],
                       onChanged: (v) {
                         setState(() => form.dnsNameCtl.text = v ?? '');
@@ -240,22 +264,25 @@ class _ConfigPageState extends State<ConfigPage>
                     const SizedBox(height: 8),
                     TextField(
                       decoration: const InputDecoration(
-                          labelText: 'DNS API ID/Key',
-                          border: OutlineInputBorder()),
+                        labelText: 'DNS API ID/Key',
+                        border: OutlineInputBorder(),
+                      ),
                       controller: form.dnsIdCtl,
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       decoration: const InputDecoration(
-                          labelText: 'DNS API Secret/Token',
-                          border: OutlineInputBorder()),
+                        labelText: 'DNS API Secret/Token',
+                        border: OutlineInputBorder(),
+                      ),
                       controller: form.dnsSecretCtl,
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       decoration: const InputDecoration(
-                          labelText: 'TTL',
-                          border: OutlineInputBorder()),
+                        labelText: 'TTL',
+                        border: OutlineInputBorder(),
+                      ),
                       controller: form.ttlCtl,
                     ),
                     const SizedBox(height: 12),
@@ -277,7 +304,9 @@ class _ConfigPageState extends State<ConfigPage>
                         items: const [
                           DropdownMenuItem(value: 'url', child: Text('URL')),
                           DropdownMenuItem(
-                              value: 'netInterface', child: Text('网卡')),
+                            value: 'netInterface',
+                            child: Text('网卡'),
+                          ),
                           DropdownMenuItem(value: 'cmd', child: Text('命令')),
                         ],
                         onChanged: (v) {
@@ -288,13 +317,15 @@ class _ConfigPageState extends State<ConfigPage>
                       if (form.ipv4GetTypeCtl.text == 'url')
                         TextField(
                           decoration: const InputDecoration(
-                              labelText: 'IPv4 URL',
-                              border: OutlineInputBorder()),
+                            labelText: 'IPv4 URL',
+                            border: OutlineInputBorder(),
+                          ),
                           controller: form.ipv4UrlCtl,
                         ),
                       if (form.ipv4GetTypeCtl.text == 'netInterface')
                         DropdownButtonFormField<String>(
-                          initialValue: _config!.ipv4Interfaces
+                          initialValue:
+                              _config!.ipv4Interfaces
                                   .map((e) => e.name)
                                   .toList()
                                   .contains(form.ipv4NetInterfaceCtl.text)
@@ -305,12 +336,17 @@ class _ConfigPageState extends State<ConfigPage>
                             border: OutlineInputBorder(),
                           ),
                           items: _config!.ipv4Interfaces
-                              .map((e) => DropdownMenuItem(
-                                  value: e.name, child: Text(e.name)))
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e.name,
+                                  child: Text(e.name),
+                                ),
+                              )
                               .toList(),
                           onChanged: (v) {
                             setState(
-                                () => form.ipv4NetInterfaceCtl.text = v ?? '');
+                              () => form.ipv4NetInterfaceCtl.text = v ?? '',
+                            );
                           },
                         ),
                       const SizedBox(height: 8),
@@ -342,7 +378,9 @@ class _ConfigPageState extends State<ConfigPage>
                         items: const [
                           DropdownMenuItem(value: 'url', child: Text('URL')),
                           DropdownMenuItem(
-                              value: 'netInterface', child: Text('网卡')),
+                            value: 'netInterface',
+                            child: Text('网卡'),
+                          ),
                           DropdownMenuItem(value: 'cmd', child: Text('命令')),
                         ],
                         onChanged: (v) {
@@ -353,13 +391,15 @@ class _ConfigPageState extends State<ConfigPage>
                       if (form.ipv6GetTypeCtl.text == 'url')
                         TextField(
                           decoration: const InputDecoration(
-                              labelText: 'IPv6 URL',
-                              border: OutlineInputBorder()),
+                            labelText: 'IPv6 URL',
+                            border: OutlineInputBorder(),
+                          ),
                           controller: form.ipv6UrlCtl,
                         ),
                       if (form.ipv6GetTypeCtl.text == 'netInterface')
                         DropdownButtonFormField<String>(
-                          initialValue: _config!.ipv6Interfaces
+                          initialValue:
+                              _config!.ipv6Interfaces
                                   .map((e) => e.name)
                                   .toList()
                                   .contains(form.ipv6NetInterfaceCtl.text)
@@ -370,12 +410,17 @@ class _ConfigPageState extends State<ConfigPage>
                             border: OutlineInputBorder(),
                           ),
                           items: _config!.ipv6Interfaces
-                              .map((e) => DropdownMenuItem(
-                                  value: e.name, child: Text(e.name)))
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e.name,
+                                  child: Text(e.name),
+                                ),
+                              )
                               .toList(),
                           onChanged: (v) {
                             setState(
-                                () => form.ipv6NetInterfaceCtl.text = v ?? '');
+                              () => form.ipv6NetInterfaceCtl.text = v ?? '',
+                            );
                           },
                         ),
                       const SizedBox(height: 8),
@@ -411,9 +456,13 @@ class _ConfigPageState extends State<ConfigPage>
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('保存配置',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  : const Text(
+                      '保存配置',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 16),
@@ -483,5 +532,21 @@ class _DnsFormData {
       'ipv6NetInterface': ipv6NetInterfaceCtl.text,
       'ipv6Domains': ipv6DomainsCtl.text,
     };
+  }
+
+  void dispose() {
+    nameCtl.dispose();
+    dnsNameCtl.dispose();
+    dnsIdCtl.dispose();
+    dnsSecretCtl.dispose();
+    ttlCtl.dispose();
+    ipv4GetTypeCtl.dispose();
+    ipv4UrlCtl.dispose();
+    ipv4NetInterfaceCtl.dispose();
+    ipv4DomainsCtl.dispose();
+    ipv6GetTypeCtl.dispose();
+    ipv6UrlCtl.dispose();
+    ipv6NetInterfaceCtl.dispose();
+    ipv6DomainsCtl.dispose();
   }
 }

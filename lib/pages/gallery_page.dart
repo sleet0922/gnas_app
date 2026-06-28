@@ -59,9 +59,7 @@ class _GalleryPageState extends State<GalleryPage>
 
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      const SnackBar(content: Text('正在上传...')),
-    );
+    messenger.showSnackBar(const SnackBar(content: Text('正在上传...')));
 
     int success = 0;
     int failed = 0;
@@ -117,7 +115,9 @@ class _GalleryPageState extends State<GalleryPage>
             Text(_error!),
             const SizedBox(height: 12),
             FilledButton.tonal(
-                onPressed: _loadGallery, child: const Text('重试')),
+              onPressed: _loadGallery,
+              child: const Text('重试'),
+            ),
           ],
         ),
       );
@@ -128,11 +128,13 @@ class _GalleryPageState extends State<GalleryPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.photo_library_outlined,
-                size: 80, color: Colors.grey.shade300),
+            Icon(
+              Icons.photo_library_outlined,
+              size: 80,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 12),
-            Text('暂无媒体文件',
-                style: TextStyle(color: Colors.grey.shade500)),
+            Text('暂无媒体文件', style: TextStyle(color: Colors.grey.shade500)),
           ],
         ),
       );
@@ -177,8 +179,11 @@ class _GalleryPageState extends State<GalleryPage>
                                   color: Colors.black54,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(Icons.play_arrow,
-                                    color: Colors.white, size: 32),
+                                child: Icon(
+                                  Icons.play_arrow,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
                               ),
                             ),
                           ),
@@ -227,8 +232,9 @@ class _GalleryPageState extends State<GalleryPage>
           content: Text('确定要删除 "${item.name}" 吗？'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('取消')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消'),
+            ),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: dialogTheme.colorScheme.error,
@@ -266,10 +272,7 @@ class _GalleryPageState extends State<GalleryPage>
     if (item.isVideo) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => _VideoPreviewPage(
-            item: item,
-            api: _api,
-          ),
+          builder: (_) => _VideoPreviewPage(item: item, api: _api),
         ),
       );
     } else {
@@ -343,7 +346,10 @@ class _ImagePreviewPageState extends State<_ImagePreviewPage> {
         onPageChanged: (i) => setState(() => _currentIndex = i),
         itemBuilder: (_, i) {
           final item = widget.images[i];
-          final url = widget.api.getDownloadUrl(item.path, disposition: 'inline');
+          final url = widget.api.getDownloadUrl(
+            item.path,
+            disposition: 'inline',
+          );
           return InteractiveViewer(
             minScale: 1.0,
             maxScale: 4.0,
@@ -357,7 +363,7 @@ class _ImagePreviewPageState extends State<_ImagePreviewPage> {
                     child: CircularProgressIndicator(
                       value: progress.expectedTotalBytes != null
                           ? progress.cumulativeBytesLoaded /
-                              progress.expectedTotalBytes!
+                                progress.expectedTotalBytes!
                           : null,
                       color: Colors.white54,
                     ),
@@ -366,8 +372,11 @@ class _ImagePreviewPageState extends State<_ImagePreviewPage> {
                 errorBuilder: (_, _, _) => Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.broken_image,
-                        color: Colors.white38, size: 64),
+                    const Icon(
+                      Icons.broken_image,
+                      color: Colors.white38,
+                      size: 64,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       item.name,
@@ -391,20 +400,18 @@ class _VideoPreviewPage extends StatefulWidget {
   final MediaItem item;
   final ApiService api;
 
-  const _VideoPreviewPage({
-    required this.item,
-    required this.api,
-  });
+  const _VideoPreviewPage({required this.item, required this.api});
 
   @override
   State<_VideoPreviewPage> createState() => _VideoPreviewPageState();
 }
 
 class _VideoPreviewPageState extends State<_VideoPreviewPage> {
-  late VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _initialized = false;
   bool _error = false;
   bool _showControls = true;
+  bool _listenerAttached = false;
 
   @override
   void initState() {
@@ -413,15 +420,33 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
   }
 
   Future<void> _initPlayer() async {
+    VideoPlayerController? controller;
     try {
-      final url = widget.api.getDownloadUrl(widget.item.path, disposition: 'inline');
-      _controller = VideoPlayerController.networkUrl(Uri.parse(url));
-      await _controller.initialize();
-      if (!mounted) return;
+      final url = widget.api.getDownloadUrl(
+        widget.item.path,
+        disposition: 'inline',
+      );
+      controller = VideoPlayerController.networkUrl(Uri.parse(url));
+      _controller = controller;
+      await controller.initialize();
+      if (!mounted) {
+        await controller.dispose();
+        if (_controller == controller) {
+          _controller = null;
+        }
+        return;
+      }
       setState(() => _initialized = true);
-      _controller.play();
-      _controller.addListener(_onStateChanged);
+      controller.play();
+      controller.addListener(_onStateChanged);
+      _listenerAttached = true;
     } catch (e) {
+      if (controller != null) {
+        await controller.dispose();
+      }
+      if (_controller == controller) {
+        _controller = null;
+      }
       if (!mounted) return;
       setState(() => _error = true);
     }
@@ -434,8 +459,13 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
 
   @override
   void dispose() {
-    _controller.removeListener(_onStateChanged);
-    _controller.dispose();
+    final controller = _controller;
+    if (controller != null) {
+      if (_listenerAttached) {
+        controller.removeListener(_onStateChanged);
+      }
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -465,8 +495,11 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.videocam_off,
-                        color: Colors.white38, size: 64),
+                    const Icon(
+                      Icons.videocam_off,
+                      color: Colors.white38,
+                      size: 64,
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       '视频加载失败',
@@ -491,14 +524,14 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
                   ],
                 ),
               )
-            : _initialized
+            : _initialized && _controller != null
             ? Stack(
                 fit: StackFit.expand,
                 children: [
                   Center(
                     child: AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
-                      child: VideoPlayer(_controller),
+                      aspectRatio: _controller!.value.aspectRatio,
+                      child: VideoPlayer(_controller!),
                     ),
                   ),
                   if (_showControls)
@@ -522,7 +555,7 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               VideoProgressIndicator(
-                                _controller,
+                                _controller!,
                                 allowScrubbing: true,
                                 colors: const VideoProgressColors(
                                   playedColor: Colors.white,
@@ -532,40 +565,45 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
                               ),
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 16),
+                                  horizontal: 16,
+                                ),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _formatDuration(
-                                          _controller.value.position),
+                                        _controller!.value.position,
+                                      ),
                                       style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12),
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                     IconButton(
                                       icon: Icon(
-                                        _controller.value.isPlaying
+                                        _controller!.value.isPlaying
                                             ? Icons.pause_circle_filled
                                             : Icons.play_circle_filled,
                                         color: Colors.white,
                                         size: 40,
                                       ),
                                       onPressed: () {
-                                        if (_controller.value.isPlaying) {
-                                          _controller.pause();
+                                        if (_controller!.value.isPlaying) {
+                                          _controller!.pause();
                                         } else {
-                                          _controller.play();
+                                          _controller!.play();
                                         }
                                       },
                                     ),
                                     Text(
                                       _formatDuration(
-                                          _controller.value.duration),
+                                        _controller!.value.duration,
+                                      ),
                                       style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12),
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -584,14 +622,11 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
                   children: [
                     CircularProgressIndicator(color: Colors.white54),
                     SizedBox(height: 16),
-                    Text(
-                      '正在加载视频...',
-                      style: TextStyle(color: Colors.white54),
-                    ),
+                    Text('正在加载视频...', style: TextStyle(color: Colors.white54)),
                   ],
                 ),
               ),
-        ),
+      ),
     );
   }
 }
